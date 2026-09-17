@@ -356,19 +356,33 @@ ssh -i "your-key.pem" ubuntu@<EC2-Public-IP>        # Ubuntu
 
 ### Step 4: Install Java (Jenkins requires Java)
 
-Jenkins needs Java (JDK 17 is recommended for current Jenkins versions).
+Jenkins requires Java to run, yet not all Linux distributions include Java by default. Additionally, not all Java versions are compatible with Jenkins.
 
-**Amazon Linux 2023 / RHEL:**
+There are multiple Java implementations you can use. **OpenJDK** is the most popular one at the moment, and current Jenkins versions support **Java 17 or Java 21**.
+
+**Ubuntu / Debian:**
+
+Update the `apt` repositories, install OpenJDK 21, and check the installation using the following commands:
+
 ```bash
-sudo dnf update -y
-sudo dnf install java-17-amazon-corretto -y
+sudo apt update
+sudo apt install fontconfig openjdk-21-jre -y
 java -version
 ```
 
-**Ubuntu / Debian:**
+If the installation was successful, you should see an output similar to the following:
+
+```
+openjdk 21.0.8 2025-07-15
+OpenJDK Runtime Environment (build 21.0.8+9-Debian-1)
+OpenJDK 64-Bit Server VM (build 21.0.8+9-Debian-1, mixed mode, sharing)
+```
+
+**Amazon Linux 2023 / RHEL:**
+
 ```bash
-sudo apt update
-sudo apt install fontconfig openjdk-17-jre -y
+sudo dnf update -y
+sudo dnf install java-21-amazon-corretto -y
 java -version
 ```
 
