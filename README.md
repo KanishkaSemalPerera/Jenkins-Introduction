@@ -15,6 +15,7 @@ A simple, beginner-to-master guide to Jenkins. This README explains everything i
 7. [Getting Started (Step by Step)](#7-getting-started-step-by-step)
 8. [Installing Jenkins on an AWS EC2 Server (Linux)](#8-installing-jenkins-on-an-aws-ec2-server-linux)
 9. [Simple Words Glossary](#9-simple-words-glossary)
+10. [References](#references)
 
 ---
 
@@ -470,3 +471,9 @@ Paste this password into the "Unlock Jenkins" screen, then choose **Install Sugg
 - **Pipeline** = a full automated workflow written as code, made of stages.
 
 With these basics, you now have a clear beginner-to-master path to understand and start using Jenkins confidently.
+
+---
+
+## References
+
+- [Official Jenkins Documentation](https://www.jenkins.io/doc/) — the authoritative source for installation guides, pipeline syntax, plugins, and administration.
