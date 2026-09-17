@@ -2,6 +2,8 @@
 
 A simple, beginner-to-master guide to Jenkins. This README explains everything in easy English, step by step, so anyone — even a total beginner — can understand Jenkins and start using it.
 
+![Jenkins Architecture](images/jenkins-architecture.png)
+
 ## Table of Contents
 
 1. [What is Jenkins?](#1-what-is-jenkins)
@@ -54,6 +56,8 @@ Both Jenkins and GitHub Actions are tools used for **CI/CD** (automating build, 
 | **Maintenance** | You must update and maintain the Jenkins server | GitHub maintains everything for you |
 | **Best for** | Large companies, complex pipelines, custom needs | Small to medium projects, quick and easy setup |
 
+![Jenkins vs GitHub Actions](images/jenkins-vs-github-actions.png)
+
 ### Simple Way to Remember
 
 - **Jenkins** = Like owning your own car. More control, but you must maintain it.
@@ -64,6 +68,22 @@ Both Jenkins and GitHub Actions are tools used for **CI/CD** (automating build, 
 ## 3. Jenkins Controller
 
 The **Jenkins Controller** (previously called "Jenkins Master") is the **brain** of Jenkins.
+
+```mermaid
+flowchart LR
+    Dev["👩‍💻 Developer"] -->|push code| Git[("Git Repository")]
+    Git --> Controller["🧠 Jenkins Controller\n(Manager)"]
+    Controller -->|assigns job| Agent1["⚙️ Agent 1"]
+    Controller -->|assigns job| Agent2["⚙️ Agent 2"]
+    Controller -->|assigns job| Agent3["⚙️ Agent 3"]
+    Agent1 --> Result1["Build Result"]
+    Agent2 --> Result2["Build Result"]
+    Agent3 --> Result3["Build Result"]
+    Result1 --> Controller
+    Result2 --> Controller
+    Result3 --> Controller
+    Controller --> Dashboard["📊 Web Dashboard"]
+```
 
 ### What does it do?
 
@@ -88,6 +108,8 @@ Imagine a manager in an office:
 ## 4. Jenkins Agent
 
 A **Jenkins Agent** (previously called "Jenkins Slave") is a **worker machine** that actually does the work — building, testing, and running jobs.
+
+![Jenkins Architecture - Controller and Agents](images/jenkins-architecture.png)
 
 ### What does it do?
 
@@ -141,6 +163,22 @@ Think of a Job like a **recipe card**. It tells Jenkins exactly what steps to fo
 ## 6. Jenkins Pipeline
 
 A **Jenkins Pipeline** is a way to define your entire build process **as code**, using a file called a `Jenkinsfile`.
+
+![Jenkins Pipeline Flow](images/pipeline-flow.png)
+
+```mermaid
+flowchart LR
+    A["Checkout\nGet source code"] --> B["Build\nCompile the app"]
+    B --> C["Test\nRun automated tests"]
+    C --> D["Package\nCreate build artifact"]
+    D --> E["Deploy\nRelease to server"]
+
+    style A fill:#f2f3f5,stroke:#5a6472,color:#1b2a4a
+    style B fill:#eaf1ff,stroke:#2f6fed,color:#1b2a4a
+    style C fill:#e7f8ee,stroke:#1f9d55,color:#1b2a4a
+    style D fill:#fdf0e0,stroke:#e07b1a,color:#1b2a4a
+    style E fill:#f6e7fb,stroke:#9b3fc9,color:#1b2a4a
+```
 
 ### Why use a Pipeline instead of Freestyle Jobs?
 
