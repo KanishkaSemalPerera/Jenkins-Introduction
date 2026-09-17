@@ -13,7 +13,8 @@ A simple, beginner-to-master guide to Jenkins. This README explains everything i
 5. [Jenkins Job](#5-jenkins-job)
 6. [Jenkins Pipeline](#6-jenkins-pipeline)
 7. [Getting Started (Step by Step)](#7-getting-started-step-by-step)
-8. [Simple Words Glossary](#8-simple-words-glossary)
+8. [Installing Jenkins on an AWS EC2 Server (Linux)](#8-installing-jenkins-on-an-aws-ec2-server-linux)
+9. [Simple Words Glossary](#9-simple-words-glossary)
 
 ---
 
@@ -298,7 +299,151 @@ Here is a simple beginner roadmap to learn and use Jenkins from scratch:
 
 ---
 
-## 8. Simple Words Glossary
+## 8. Installing Jenkins on an AWS EC2 Server (Linux)
+
+This section shows how to launch an AWS EC2 server, open the correct **Security Group** ports (including **8080** for the Jenkins web UI), and install Jenkins on Linux — with best practices you should follow along the way.
+
+```mermaid
+flowchart TB
+    Dev["👩‍💻 You (Browser / SSH client)"]
+    SG["🔒 EC2 Security Group\nInbound Rules"]
+    EC2["🖥️ EC2 Instance (Linux)\nJava + Jenkins"]
+
+    Dev -->|"SSH: TCP 22"| SG
+    Dev -->|"Jenkins UI: TCP 8080"| SG
+    SG --> EC2
+    EC2 -->|"systemctl start jenkins"| Jenkins["⚙️ Jenkins Service\n:8080"]
+    Jenkins --> Dashboard["📊 Jenkins Dashboard\nhttp://<EC2-Public-IP>:8080"]
+```
+
+### Step 1: Launch an EC2 Instance
+
+- Go to the AWS Console → **EC2** → **Launch Instance**.
+- Choose an AMI (image): **Amazon Linux 2023** or **Ubuntu 22.04 LTS** both work well.
+- Choose an instance type: **t2.medium** (2 vCPU / 4 GB RAM) or larger is recommended. Jenkins can run on `t2.micro`, but builds may be slow or run out of memory.
+- Create or select a **Key Pair** (`.pem` file) — you'll need it to SSH into the server. Keep this file safe; never commit it to Git.
+- Attach at least **20 GB** of storage (EBS volume) — Jenkins jobs, plugins, and build artifacts use disk space over time.
+
+### Step 2: Configure the Security Group (Important!)
+
+The **Security Group** acts like a firewall for your EC2 instance. You must open the right ports so you can reach Jenkins.
+
+| Type | Protocol | Port Range | Source | Purpose |
+|---|---|---|---|---|
+| SSH | TCP | 22 | Your IP only (`x.x.x.x/32`) | Connect to the server via SSH |
+| Custom TCP | TCP | 8080 | Your IP, or your team's IP range | Access the Jenkins web dashboard |
+| HTTP | TCP | 80 | Your IP / `0.0.0.0` (only if using a reverse proxy) | Optional — if Jenkins sits behind Nginx/ALB |
+| HTTPS | TCP | 443 | Your IP / `0.0.0.0` (only if using a reverse proxy) | Optional — for secure HTTPS access |
+
+**How to add these rules:**
+
+1. Open the AWS Console → **EC2** → **Security Groups**.
+2. Select the security group attached to your instance (or create a new one).
+3. Go to the **Inbound rules** tab → **Edit inbound rules** → **Add rule**.
+4. Add a rule for port **22** (SSH) and one for port **8080** (Jenkins), as shown in the table above.
+5. Click **Save rules**.
+
+⚠️ **Best Practice:** Never set the Source to `0.0.0.0/0` (anywhere) for port 8080 or 22 in production. Anyone on the internet could then try to access your Jenkins server or brute-force SSH. Always restrict the source to your own IP address or your organization's VPN/IP range. If your IP changes often, use "My IP" in the AWS console each time you connect.
+
+### Step 3: Connect to the Instance via SSH
+
+```bash
+chmod 400 your-key.pem
+ssh -i "your-key.pem" ec2-user@<EC2-Public-IP>      # Amazon Linux
+ssh -i "your-key.pem" ubuntu@<EC2-Public-IP>        # Ubuntu
+```
+
+### Step 4: Install Java (Jenkins requires Java)
+
+Jenkins needs Java (JDK 17 is recommended for current Jenkins versions).
+
+**Amazon Linux 2023 / RHEL:**
+```bash
+sudo dnf update -y
+sudo dnf install java-17-amazon-corretto -y
+java -version
+```
+
+**Ubuntu / Debian:**
+```bash
+sudo apt update
+sudo apt install fontconfig openjdk-17-jre -y
+java -version
+```
+
+### Step 5: Install Jenkins
+
+**Amazon Linux 2023 / RHEL:**
+```bash
+sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+sudo dnf install jenkins -y
+```
+
+**Ubuntu / Debian:**
+```bash
+sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt update
+sudo apt install jenkins -y
+```
+
+### Step 6: Start and Enable Jenkins
+
+```bash
+sudo systemctl start jenkins
+sudo systemctl enable jenkins
+sudo systemctl status jenkins
+```
+
+- `start` — runs Jenkins now.
+- `enable` — makes Jenkins start automatically after a server reboot.
+- `status` — confirms Jenkins is running (look for `active (running)`).
+
+### Step 7: Allow Port 8080 on the OS Firewall (if enabled)
+
+Some Linux images also run their own local firewall in addition to the AWS Security Group. If Jenkins is unreachable even after the Security Group is open, check this:
+
+```bash
+# Ubuntu (ufw)
+sudo ufw allow 8080/tcp
+
+# Amazon Linux / RHEL (firewalld, if installed)
+sudo firewall-cmd --permanent --add-port=8080/tcp
+sudo firewall-cmd --reload
+```
+
+### Step 8: Access Jenkins in the Browser
+
+Open:
+```
+http://<EC2-Public-IP>:8080
+```
+
+### Step 9: Unlock Jenkins
+
+Get the initial admin password from the server:
+
+```bash
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+Paste this password into the "Unlock Jenkins" screen, then choose **Install Suggested Plugins**, and create your admin user (see [Section 7](#7-getting-started-step-by-step) for the rest of the first-run setup).
+
+### Best Practices for Running Jenkins on EC2
+
+- **Restrict access:** Never expose port 8080 (or 22) to `0.0.0.0/0`. Use a specific IP, a VPN, or a bastion host.
+- **Use an Elastic IP:** A normal EC2 public IP changes if the instance is stopped/restarted. An Elastic IP keeps your Jenkins URL stable.
+- **Put Jenkins behind a reverse proxy (Nginx) with HTTPS:** Instead of exposing `:8080` directly, forward `443` → `8080` through Nginx with a TLS certificate (e.g., Let's Encrypt). This lets you close port 8080 to the outside world entirely.
+- **Don't run Jenkins as root:** The Jenkins installer creates a dedicated `jenkins` system user — leave it that way.
+- **Back up `/var/lib/jenkins`** (the `JENKINS_HOME` directory) regularly — it contains all jobs, credentials, and configuration.
+- **Keep Jenkins and plugins updated** to get security fixes.
+- **Use IAM roles** (not hardcoded AWS access keys) if Jenkins needs to talk to other AWS services.
+- **Enable EC2 instance monitoring/alarms** so you know if the server runs out of disk space or memory.
+
+---
+
+## 9. Simple Words Glossary
 
 | Term | Simple Meaning |
 |---|---|
